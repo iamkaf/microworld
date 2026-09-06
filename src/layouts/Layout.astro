@@ -1,0 +1,63 @@
+---
+import '../styles/global.css';
+const { title = 'Microworld — A whole world. A little JSON.', description = 'Deterministic 2D worlds, ready for your next game. Explore presets and generate terrain, biomes, and structures with a public API.' } = Astro.props;
+const canonical = new URL(Astro.url.pathname, 'https://microworld.kaf.sh').href;
+---
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="description" content={description}/>
+<meta name="theme-color" content="#fafaf8"/>
+<link rel="canonical" href={canonical}/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="Microworld"/>
+<meta property="og:title" content={title}/>
+<meta property="og:description" content={description}/>
+<meta property="og:url" content={canonical}/>
+<meta property="og:image" content="https://microworld.kaf.sh/og.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="640"/>
+<meta property="og:image:alt" content="Six worlds rendered from Microworld generation data"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content={title}/>
+<meta name="twitter:description" content={description}/>
+<meta name="twitter:image" content="https://microworld.kaf.sh/og.png"/>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+<title>{title}</title>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+<a class="wordmark" href="/" aria-label="Microworld home">
+<span class="logo" aria-hidden="true">
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+</span>microworld<span class="wordmark-dot">.</span>
+</a>
+<nav aria-label="Main navigation">
+<a href="/#playground">Playground</a>
+<a href="/docs">Docs</a>
+<a class="github-link" href="https://github.com/iamkaf/microworld">GitHub <span aria-hidden="true">↗</span>
+</a>
+</nav>
+</header>
+<slot/>
+<footer class="site-footer">
+<a class="wordmark" href="/">microworld.</a>
+<p>Small cells. Big possibilities.</p>
+<div>
+<a href="https://github.com/iamkaf/microworld">Open source</a>
+<a href="https://github.com/iamkaf/microworld/blob/main/LICENSE">Apache 2.0</a>
+<a href="https://kaf.sh">Made by Kaf ↗</a>
+</div>
+</footer>
+</body>
+</html>

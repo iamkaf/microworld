@@ -1,0 +1,5 @@
+public/demos/
+public/readme-worlds.svg
+dist/
+.astro/
+.wrangler/
