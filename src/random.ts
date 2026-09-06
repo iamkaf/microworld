@@ -37,3 +37,52 @@ export function noise(seed: number, x: bigint, y: bigint, scale: number, salt = 
     ty,
   );
 }
+
+/** A request-local sampler: only new lattice cells need exact-coordinate hashing.
+ * Offsets stay small even when the world origin is near the safe integer limit.
+ * The interpolation order matches noise(), which defines the version 1 output.
+ */
+export function createNoiseSampler(
+  seed: number,
+  originX: bigint,
+  originY: bigint,
+  scale: number,
+  salt = 0,
+) {
+  const size = BigInt(scale);
+  const baseX = floorDiv(originX, size),
+    baseY = floorDiv(originY, size);
+  const remainderX = Number(originX - baseX * size),
+    remainderY = Number(originY - baseY * size);
+  const rows = new Map<number, Map<number, readonly [number, number, number, number]>>();
+  return (offsetX: number, offsetY: number) => {
+    const x = remainderX + offsetX,
+      y = remainderY + offsetY;
+    const gx = Math.floor(x / scale),
+      gy = Math.floor(y / scale);
+    let row = rows.get(gy);
+    if (!row) {
+      row = new Map();
+      rows.set(gy, row);
+    }
+    let corners = row.get(gx);
+    if (!corners) {
+      const px = baseX + BigInt(gx),
+        py = baseY + BigInt(gy);
+      corners = [
+        hashPosition(seed, px, py, salt) / 4294967296,
+        hashPosition(seed, px + 1n, py, salt) / 4294967296,
+        hashPosition(seed, px, py + 1n, salt) / 4294967296,
+        hashPosition(seed, px + 1n, py + 1n, salt) / 4294967296,
+      ];
+      row.set(gx, corners);
+    }
+    const fx = (x - gx * scale) / scale,
+      fy = (y - gy * scale) / scale;
+    const tx = fx * fx * (3 - 2 * fx),
+      ty = fy * fy * (3 - 2 * fy);
+    const upper = corners[0] + (corners[1] - corners[0]) * tx;
+    const lower = corners[2] + (corners[3] - corners[2]) * tx;
+    return upper + (lower - upper) * ty;
+  };
+}

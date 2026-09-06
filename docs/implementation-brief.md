@@ -26,9 +26,13 @@ Generation is bounded by configurable cell and work limits, without a 10 ms desi
 
 ## Architecture
 
-The repository is one private pnpm project, with no database or session store. Private here means the project is not published as an npm package; the source is open.
+The repository is one private pnpm project, with no application database or session store. Private here means the project is not published as an npm package; the source is open.
 
-The generator owns coordinates, randomness, terrain, placement, and templates. Service functions resolve presets and validate requests. Thin Worker handlers expose those functions over `QUERY` and MCP. Astro emits static pages and assets; small browser modules run the interactive demo viewers. Browser interaction uses the same public generation endpoint as external callers.
+The generator owns coordinates, randomness, terrain, placement, and templates. Service functions resolve presets and validate requests. Shared request handlers expose those functions over `QUERY` and MCP. Astro emits static pages and assets; small browser modules run the interactive demo viewers. Browser interaction uses the same public generation endpoint as external callers.
+
+The entry Worker serves static assets and forwards API and MCP requests unchanged through `WORLD_GENERATOR` to the exported `WorldGenerator` Durable Object class. JSON parsing, generation, and serialization run inside the compute object, keeping large responses out of the entry Worker's short CPU allowance. Requests use one of 32 randomly selected compute buckets per trusted Cloudflare `cf.colo` value, with a global fallback when that metadata is absent. Bucket selection does not affect world generation.
+
+The pool is stateless at the application level. Objects retain only their environment bindings, perform no storage operations, and keep no seeds, worlds, or MCP sessions between requests. The `v1` deployment migration declares `new_sqlite_classes`, because the SQLite backend is available on Cloudflare Free. There are no application SQL tables or data migrations. Cloudflare documents a default 30-second CPU allowance per Durable Object invocation. The deployment does not upgrade to a paid plan. [Cloudflare limits](https://developers.cloudflare.com/durable-objects/platform/limits/)
 
 Preset definitions are versioned repository data. Valibot validates requests. The API publishes JSON Schemas, with additional cross-field constraints checked at runtime. The MCP implementation handles the requested protocol revision directly, without an SDK or HTTP framework.
 
@@ -86,7 +90,7 @@ Provide a quick start, API and MCP documentation, preset inspection, placement e
 
 Version `1` identifies the generation algorithm and preset contents. Tests pin representative output with SHA-256 expectations in `test/generate.test.ts`. Changing terrain or placement output under an existing version breaks saved worlds. Introduce a new version for such changes and preserve the old implementation.
 
-The original prototype findings remain in [prototype-findings.md](prototype-findings.md) as historical measurements. They do not describe production performance or the full v1 preset library. Production limits should follow measurements of the current generator on the deployed Worker.
+Current optimization and deployment checks are recorded in [verification.md](verification.md). The original prototype findings remain in [prototype-findings.md](prototype-findings.md) as historical measurements. They do not describe production performance or the full v1 preset library. Production limits should follow measurements of the current generator on the deployed Worker.
 
 ## Deliberate limits
 

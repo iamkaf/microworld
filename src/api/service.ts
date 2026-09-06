@@ -5,6 +5,7 @@ import { VERSION, LIMITS } from "../schema.ts";
 import { HttpError } from "./http.ts";
 
 export interface Env {
+  WORLD_GENERATOR?: { getByName(name: string): { fetch(request: Request): Promise<Response> } };
   ASSETS?: { fetch(request: Request): Promise<Response> };
   RATE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
   MCP_ALLOWED_ORIGINS?: string;

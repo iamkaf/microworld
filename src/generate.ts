@@ -25,9 +25,11 @@ export function generateWorld(input: unknown, limits: Partial<typeof LIMITS> = {
   const elevation: number[] = [],
     biome: string[] = [];
   const { x, y, width, height } = request.window;
+  const columns = Array.from({ length: width }, (_, dx) => BigInt(x) + BigInt(dx));
   for (let dy = 0; dy < height; dy++) {
+    const row = BigInt(y) + BigInt(dy);
     for (let dx = 0; dx < width; dx++) {
-      const cell = terrain(BigInt(x) + BigInt(dx), BigInt(y) + BigInt(dy));
+      const cell = terrain(columns[dx], row);
       elevation.push(cell.elevation);
       biome.push(cell.biome);
     }

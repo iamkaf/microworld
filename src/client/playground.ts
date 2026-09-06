@@ -174,13 +174,22 @@ get<HTMLFormElement>("world-form").addEventListener("submit", async (event) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const data = await response.json();
-    if (!response.ok)
-      throw new Error(
-        data.error?.message ??
-          data.message ??
-          `Generation failed (${response.status}). Try a simpler request.`,
-      );
+    const isJson = response.headers.get("Content-Type")?.includes("application/json");
+    const data = isJson ? await response.json().catch(() => null) : null;
+    if (!response.ok) {
+      const fallback =
+        response.status === 429
+          ? `The service is busy (${response.status}). Please wait a moment and try again.`
+          : response.status >= 500
+            ? `World generation is temporarily unavailable (${response.status}). Try a smaller window or try again shortly.`
+            : `Generation failed (${response.status}). Check your settings and try again.`;
+      const message = data?.error?.message ?? data?.message ?? fallback;
+      const issue = data?.error?.issues?.[0]?.message;
+      throw new Error(issue && issue !== message ? `${message} ${issue}` : message);
+    }
+    if (!data || !Array.isArray(data.biome) || !Array.isArray(data.elevation)) {
+      throw new Error("The service returned an unreadable world. Please try again shortly.");
+    }
     if (token !== requestNumber) return;
     show(data as World, "Live world · deterministic generation");
   } catch (cause) {
