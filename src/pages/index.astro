@@ -60,11 +60,14 @@ const presets = [
 </button>
 </form>
 <div class="layer-control">
+<label for="map-style">Style</label>
+<select id="map-style"><option value="block">Block map</option><option value="classic">Classic RPG</option></select>
 <label for="layer">View</label>
 <select id="layer">
 <option value="biome">Biomes</option>
 <option value="elevation">Elevation</option>
 <option value="objects">Objects</option>
+<option value="walkability">Walkability</option>
 </select>
 </div>
 </div>
@@ -103,7 +106,13 @@ const presets = [
 <span class="map-label-separator">/</span>
 <span id="map-seed">hello-world</span>
 </div>
-<div class="map-hint">Drag to explore <span>·</span> Scroll to zoom</div>
+<div class="map-hint" id="map-hint">Drag to explore <span>·</span> Scroll to zoom</div>
+<div id="walk-controls" class="walk-controls" hidden>
+<button type="button" data-walk="0,-1" aria-label="Walk north">↑</button>
+<button type="button" data-walk="-1,0" aria-label="Walk west">←</button>
+<button type="button" data-walk="0,1" aria-label="Walk south">↓</button>
+<button type="button" data-walk="1,0" aria-label="Walk east">→</button>
+</div>
 <div class="zoom-controls">
 <button id="zoom-in" aria-label="Zoom in">+</button>
 <button id="zoom-out" aria-label="Zoom out">−</button>
@@ -122,6 +131,7 @@ const presets = [
 <div class="playground-footnote">
 <p>Start with a ready-made world. Change the seed to make it yours.</p>
 <div class="world-export-actions">
+<button class="text-link" id="explore-world" type="button" aria-pressed="false">Walk around</button>
 <button class="text-link" id="download-world">Download JSON <span aria-hidden="true">↓</span></button>
 <button class="text-link" id="copy-world-request">Copy this request <span aria-hidden="true">↗</span>
 </button>

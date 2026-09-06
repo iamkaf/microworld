@@ -130,8 +130,10 @@ export function placeObjects(
       )) {
         if (other.id === item.id) continue;
         const stronger =
-          other.priority > item.priority ||
-          (other.priority === item.priority && other.id < item.id);
+          other.rule.priority > item.rule.priority ||
+          (other.rule.priority === item.rule.priority &&
+            (other.priority > item.priority ||
+              (other.priority === item.priority && other.id < item.id)));
         if (stronger && conflicts(item, other)) return false;
       }
     }

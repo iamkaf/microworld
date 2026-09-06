@@ -157,14 +157,26 @@ test("terrain restrictions, probability, relief, and water proximity affect plac
     placements: [{ ...base, nearWater: 1 }],
   });
   assert.ok(wet.objects.length > 0);
-  assert.equal(
-    generateWorld({
+  const flat = generateWorld({
+    seed: "relief",
+    window,
+    placements: [{ ...base, width: 4, height: 4, maxRelief: 0 }],
+  });
+  // Terraced terrain has real flat building sites. Each accepted footprint must be flat.
+  const unrestricted = generateWorld({
+    seed: "relief",
+    window,
+    placements: [{ ...base, width: 4, height: 4 }],
+  });
+  assert.ok(flat.objects.length < unrestricted.objects.length);
+  for (const object of flat.objects) {
+    const footprint = generateWorld({
       seed: "relief",
-      window,
-      placements: [{ ...base, width: 4, height: 4, maxRelief: 0 }],
-    }).objects.length,
-    0,
-  );
+      placements: [],
+      window: { x: object.x, y: object.y, width: 4, height: 4 },
+    });
+    assert.equal(new Set(footprint.elevation).size, 1);
+  }
 });
 
 test("last cell is addressable; chess alternates at the precision boundary", () => {
@@ -183,7 +195,11 @@ test("last cell is addressable; chess alternates at the precision boundary", () 
     seed: "precision",
     window: { x: last - 31, y: last - 31, width: 32, height: 32 },
   });
-  assert.ok(new Set(nearEnd.elevation).size > 20);
+  assert.ok(new Set(nearEnd.elevation).size > 1);
+  assert.notDeepEqual(
+    nearEnd.elevation,
+    generateWorld({ seed: "precision", window: { x: 0, y: 0, width: 32, height: 32 } }).elevation,
+  );
 });
 
 test("rejects invalid and ambiguous input before generation", () => {
@@ -217,14 +233,16 @@ test("expensive placement requests terminate at a deterministic work limit", () 
   );
 });
 
+// Terrain and traversal refreshed within v1 at the maintainer's explicit request.
 test("version 1 fixture", () => {
   const world = generateWorld({
+    generatorVersion: "1",
     seed: "fixture",
     placements,
     window: { x: 1234, y: 5678, width: 32, height: 32 },
   });
   const digest = createHash("sha256").update(JSON.stringify(world)).digest("hex");
-  assert.equal(digest, "bb77b910769f10e1d535e6633641273111a3b13f32f22af8c2cc1a070fa82f49");
+  assert.equal(digest, "4d9fe6cc45e01b1ad600a6b2f3340225bb6d5427c450a438ab8381f6b84e0692");
 });
 
 test("every preset fits the default work budget and reproduces from exported configuration", () => {

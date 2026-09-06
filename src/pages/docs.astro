@@ -53,7 +53,7 @@ const world = await response.json();`}</code></pre></section>
 </section>
 <section id="response">
 <h2>Read the world data</h2>
-<p>Elevation and biome arrays use row-major order. The array index for a local cell is <code>y * width + x</code>.</p>
+<p>Elevation, biome, and walkability arrays use row-major order. The array index for a local cell is <code>y * width + x</code>.</p>
 <table>
 <thead>
 <tr>
@@ -184,6 +184,9 @@ const world = await response.json();`}</code></pre></section>
   "placements": [],
   "window": { "x": 0, "y": 0, "width": 128, "height": 128 }
 }`}</code></pre></section>
+<section id="walking"><h2>Put a character in the world</h2>
+<p>The response includes <code>walkable</code>, a boolean array aligned with the terrain. Check <code>world.walkable[y * width + x]</code> before moving a character into a local cell. Water, mountain peaks, walls, trees, and other solid objects block movement. Doors, floors, and roads allow it. Custom tile identifiers default to walkable, so apply your own rules when adding new tile types.</p>
+<p>Try <strong>Walk around</strong> in the playground. Arrow keys, WASD, and the on-screen controls move the character using this same data. Choose <strong>Classic RPG</strong> for terrain tiles inspired by early console RPGs, or <strong>Block map</strong> for a top-down block-world view.</p></section>
 <section id="custom-biomes">
 <h2>Name your own biomes</h2>
 <p>Pass a <code>biomes</code> array to classify terrain using your own identifiers. Each definition can constrain elevation, moisture, and temperature. Rules use the first matching custom definition; cells that do not match keep their preset biome. Mark water biomes with <code>water: true</code> so placement proximity rules recognize them.</p>
@@ -212,7 +215,7 @@ const world = await response.json();`}</code></pre></section>
   }],
   "window": { "x": 0, "y": 0, "width": 64, "height": 64 }
 }`}</code></pre><p>
-<code>pitch</code> sets the candidate grid spacing. <code>width</code> and <code>height</code> define footprints. <code>maxRelief</code> limits the elevation difference across a footprint. <code>nearWater</code> limits distance to water, up to 16 cells. See the <a href="https://github.com/iamkaf/microworld/blob/main/docs/api-contract.md">full API contract</a> for collision priority, spacing semantics, and all validation rules.</p>
+<code>priority</code> ranges from 0 to 100 and defaults to 0. Higher priorities reserve space before lower ones, so buildings can take precedence over trees. <code>pitch</code> sets the candidate grid spacing. <code>width</code> and <code>height</code> define footprints. <code>maxRelief</code> limits the elevation difference across a footprint. <code>nearWater</code> limits distance to water, up to 16 cells. See the <a href="https://github.com/iamkaf/microworld/blob/main/docs/api-contract.md">full API contract</a> for collision priority, spacing semantics, and all validation rules.</p>
 </section>
 <section id="templates">
 <h2>Give structures some substance</h2>

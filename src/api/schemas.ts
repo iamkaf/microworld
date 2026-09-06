@@ -20,6 +20,7 @@ export const worldOutputSchema = {
     "configuration",
     "elevation",
     "biome",
+    "walkable",
     "objects",
     "tiles",
   ],
@@ -36,6 +37,7 @@ export const worldOutputSchema = {
     configuration: object,
     elevation: { type: "array", items: { type: "integer", minimum: 0, maximum: 65535 } },
     biome: { type: "array", items: string },
+    walkable: { type: "array", items: { type: "boolean" } },
     objects: {
       type: "array",
       items: {

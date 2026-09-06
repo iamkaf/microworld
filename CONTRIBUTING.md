@@ -79,7 +79,7 @@ A world is identified by its generator version, seed, and resolved configuration
 - Bound searches and account for expensive work. A placement rule must not depend on generating every preceding chunk.
 - Add representative fixtures and boundary tests for new generation behavior. Check objects that begin outside a requested window and template cells clipped to its edges.
 
-Published generator versions are compatibility contracts. Changing a preset default, hash, biome threshold, template, or placement decision can change saved worlds. Such changes require a new generator version while preserving the old implementation. Do not refresh golden expectations just to make a failing test pass. First identify the output difference and decide whether it violates an existing version's promise. Transport fixes that leave world data unchanged do not require a generator version change.
+Generator and schema versions stay at `1` during current development. Only bump a version when Kaf explicitly requests it. Terrain changes can update the v1 fixture during this period, but explain the intended output change and verify seam consistency and reproducibility before refreshing it. Released version compatibility will be frozen separately.
 
 ## Adding presets and templates
 
@@ -98,3 +98,9 @@ Use Valibot for request validation and keep published JSON Schemas consistent wi
 ## License
 
 Contributions are licensed under [Apache-2.0](LICENSE), the project's license. Include attribution and license information for any third-party material you add.
+
+## Visual generation checks
+
+The two visual targets are Minecraft viewed from above and older Final Fantasy maps. Keep terrain legible at character scale. The site offers Block map and Classic RPG rendering of the same world data, plus walking against the exported `walkable` mask. See [visual review](docs/visual-review.md) for references and screenshots.
+
+Check several seeds, movement near walls and water, and desktop and mobile controls. Keep structure tiles and collision data consistent across independently generated windows. `priority` lets structures reserve space before vegetation; tie-breaking remains deterministic.

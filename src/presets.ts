@@ -26,14 +26,23 @@ const descriptions: Record<PresetId, [string, string]> = {
   moon: ["Cratered moon", "Impact basins and mineral deposits."],
   wetlands: ["Mushroom wetlands", "Marshes, pools and fungal groves."],
 };
-const defaults = { scale: 128, seaLevel: 28000, roughness: 0.35, moisture: 0.5, temperature: 0.5 };
+const defaults = { scale: 80, seaLevel: 27000, roughness: 0.45, moisture: 0.55, temperature: 0.6 };
 const tree = {
   id: "trees",
   object: "tree",
-  pitch: 12,
-  probability: 0.7,
-  minSpacing: 2,
-  biomes: ["forest", "grassland"],
+  pitch: 6,
+  probability: 0.95,
+  minSpacing: 0,
+  biomes: ["forest"],
+  template: "oak",
+  rotations: [0, 90, 180, 270],
+};
+const scatteredTrees = {
+  ...tree,
+  id: "scattered-trees",
+  pitch: 16,
+  probability: 0.4,
+  biomes: ["grassland"],
 };
 export function getPreset(id: string) {
   if (!PRESET_IDS.includes(id as PresetId)) return undefined;
@@ -42,25 +51,28 @@ export function getPreset(id: string) {
   const placements: Record<string, unknown>[] = [];
   switch (preset) {
     case "overworld":
-      placements.push(tree);
+      placements.push(tree, scatteredTrees);
       break;
     case "rpg":
-      terrain.scale = 96;
+      terrain.scale = 56;
       placements.push(
-        tree,
+        { ...tree, template: "pine", pitch: 5 },
+        { ...scatteredTrees, template: "pine" },
         {
           id: "towns",
           object: "house",
+          priority: 10,
           pitch: 48,
           minSpacing: 8,
-          biomes: ["grassland"],
-          maxRelief: 7000,
-          template: "cottage",
+          biomes: ["grassland", "forest"],
+          maxRelief: 8500,
+          template: "hamlet",
           rotations: [0, 90, 180, 270],
         },
         {
           id: "ruins",
           object: "ruin",
+          priority: 5,
           pitch: 40,
           probability: 0.3,
           template: "ruin",
@@ -79,18 +91,31 @@ export function getPreset(id: string) {
       });
       break;
     case "islands":
-      terrain.scale = 72;
-      terrain.seaLevel = 35000;
-      placements.push({ ...tree, object: "palm", biomes: ["beach", "grassland", "forest"] });
+      terrain.scale = 64;
+      terrain.seaLevel = 32000;
+      placements.push({
+        ...tree,
+        object: "palm",
+        pitch: 9,
+        probability: 0.6,
+        template: "palm",
+        biomes: ["beach", "grassland", "forest"],
+      });
       break;
     case "sky-islands":
       terrain.scale = 64;
-      terrain.seaLevel = 38000;
-      placements.push({ ...tree, object: "sky-tree", biomes: ["sky-meadow"] });
+      terrain.seaLevel = 32000;
+      placements.push({
+        ...tree,
+        object: "sky-tree",
+        pitch: 9,
+        probability: 0.6,
+        biomes: ["sky-meadow"],
+      });
       break;
     case "ocean":
       terrain.scale = 96;
-      terrain.seaLevel = 47000;
+      terrain.seaLevel = 42000;
       placements.push({
         id: "coral",
         object: "coral",
@@ -105,7 +130,7 @@ export function getPreset(id: string) {
       break;
     case "wetlands":
       terrain.scale = 64;
-      terrain.seaLevel = 32000;
+      terrain.seaLevel = 29000;
       terrain.moisture = 0.9;
       placements.push({
         id: "mushrooms",
@@ -113,7 +138,8 @@ export function getPreset(id: string) {
         pitch: 10,
         probability: 0.8,
         biomes: ["marsh", "fungal-grove"],
-        minSpacing: 2,
+        minSpacing: 1,
+        template: "mushroom",
       });
       break;
   }

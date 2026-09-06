@@ -53,7 +53,7 @@ All coordinates are nonnegative safe JSON integers. `x + width` and `y + height`
 
 ## Configuration and presets
 
-Preset IDs and their contents are immutable within a generator version. Omitted configuration uses preset defaults. Terrain fields override defaults individually. A supplied placement array replaces preset placements; `[]` disables objects. Custom templates merge by name with built-ins and can override them.
+Version 1 is under active development; its terrain and preset defaults can change until the maintainer freezes compatibility. Omitted configuration uses preset defaults. Terrain fields override defaults individually. A supplied placement array replaces preset placements; `[]` disables objects. Custom templates merge by name with built-ins and can override them.
 
 Available presets are `overworld`, `chess`, `rpg`, `hell`, `islands`, `sky-islands`, `ocean`, `arena`, `maze`, `moon`, and `wetlands`. Discover names, descriptions, and defaults through the preset routes.
 
@@ -96,7 +96,7 @@ Example inline template:
 }
 ```
 
-Built-in template names are `cottage`, `ruin`, and `shrine`. Define additional named matrices in the top-level `templates` object, then reference a name through a rule's `template` field. At most 32 custom templates are allowed. Matrices must have equal row lengths and fit within 16 × 16 cells. Omit footprint dimensions to infer them from the template; explicit dimensions must match before rotation. A template adds a separate tile layer; it does not modify terrain elevation or biome values.
+Built-in template names are `cottage`, `ruin`, `shrine`, `hamlet`, `oak`, `pine`, `palm`, and `mushroom`. Define additional named matrices in the top-level `templates` object, then reference a name through a rule's `template` field. At most 32 custom templates are allowed. Matrices must have equal row lengths and fit within 16 × 16 cells. Omit footprint dimensions to infer them from the template; explicit dimensions must match before rotation. A template adds a separate tile layer; it does not modify terrain elevation or biome values.
 
 ## Response
 
@@ -178,3 +178,11 @@ Mirror method, name, and protocol version between headers and body, validating m
 Successful result objects include `resultType: "complete"`. Every request carries its own metadata; no client state is inferred from a previous call. [MCP base protocol](https://modelcontextprotocol.io/specification/2026-07-28/basic)
 
 The endpoint accepts independent JSON requests and returns JSON responses. Clients must advertise both `application/json` and `text/event-stream` in `Accept`, even though this server does not stream. `GET` and `DELETE` return 405. Each call requires protocol-version and client-capabilities metadata; client information is optional. Results include `_meta` server information. Older MCP revisions are not supported.
+
+## Walking and placement priority
+
+`walkable` is a row-major boolean array with one entry per cell, aligned with `biome` and `elevation`. It supplies default movement rules. Water, lava, void, mountain peaks, walls, and occupied object cells block walking. Template floors, doors, and roads are walkable; built-in foliage, trunks, walls, stone, pillars, and mushroom caps are solid. Null template cells retain their terrain behavior. Custom tile identifiers default to walkable; games can replace these rules with their own collision policy.
+
+Placement rules accept `priority`, an integer from 0 to 100, defaulting to 0. Larger values win overlapping candidates before the seeded tie-break. RPG settlements use 10 and ruins use 5, so vegetation does not suppress structures.
+
+The site’s Classic RPG tiles and Block map colors are renderers. They do not change the generated terrain or collision mask. The walking preview stays within the requested window; the API remains stateless and does not store character movement.

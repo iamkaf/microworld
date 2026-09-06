@@ -1122,3 +1122,31 @@ pre {
     gap: 10px;
   }
 }
+
+.walk-controls {
+  position: absolute;
+  right: 56px;
+  bottom: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, 34px);
+  gap: 3px;
+}
+.walk-controls[hidden] {
+  display: none;
+}
+.walk-controls button {
+  height: 34px;
+  border: 1px solid #d4d9cc;
+  background: #fafbf6;
+  color: #32382e;
+  border-radius: 4px;
+}
+.walk-controls button:first-child {
+  grid-column: 2;
+}
+.walk-controls button:nth-child(2) {
+  grid-column: 1;
+}
+.layer-control {
+  flex-wrap: wrap;
+}

@@ -1,5 +1,6 @@
 import { LIMITS, parseRequest } from "./schema.ts";
 import { createTerrain } from "./terrain.ts";
+import { canWalk, canWalkOnTile } from "./traversal.ts";
 import { placeObjects } from "./placement.ts";
 
 export class WorkLimitError extends Error {
@@ -23,7 +24,8 @@ export function generateWorld(input: unknown, limits: Partial<typeof LIMITS> = {
   };
   const terrain = createTerrain(request, charge);
   const elevation: number[] = [],
-    biome: string[] = [];
+    biome: string[] = [],
+    walkable: boolean[] = [];
   const { x, y, width, height } = request.window;
   const columns = Array.from({ length: width }, (_, dx) => BigInt(x) + BigInt(dx));
   for (let dy = 0; dy < height; dy++) {
@@ -32,17 +34,28 @@ export function generateWorld(input: unknown, limits: Partial<typeof LIMITS> = {
       const cell = terrain(columns[dx], row);
       elevation.push(cell.elevation);
       biome.push(cell.biome);
+      walkable.push(canWalk(cell.biome, cell.water));
     }
   }
   const objects = placeObjects(request, terrain, charge);
   const tiles: { x: number; y: number; tile: string; objectId: string }[] = [];
   for (const object of objects) {
+    if (!object.template) {
+      for (let dy = 0; dy < object.height; dy++)
+        for (let dx = 0; dx < object.width; dx++) {
+          const px = object.x + dx - x,
+            py = object.y + dy - y;
+          if (px >= 0 && py >= 0 && px < width && py < height) walkable[py * width + px] = false;
+        }
+    }
     object.template?.forEach((row, dy) =>
       row.forEach((tile, dx) => {
         const px = object.x + dx,
           py = object.y + dy;
-        if (tile !== null && px >= x && py >= y && px - x < width && py - y < height)
+        if (tile !== null && px >= x && py >= y && px - x < width && py - y < height) {
           tiles.push({ x: px, y: py, tile, objectId: object.id });
+          walkable[(py - y) * width + px - x] = canWalkOnTile(tile);
+        }
       }),
     );
   }
@@ -60,6 +73,7 @@ export function generateWorld(input: unknown, limits: Partial<typeof LIMITS> = {
     },
     elevation,
     biome,
+    walkable,
     objects,
     tiles,
   };

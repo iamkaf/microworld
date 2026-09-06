@@ -2,7 +2,7 @@
 
 A seed, a window, a world to build on.
 
-Microworld generates deterministic 2D world data for games. Request any patch of terrain and get elevation, biomes, objects, and structure tiles as JSON. Your game decides how they look and what happens next.
+Microworld generates deterministic 2D world data for games. Request any patch of terrain and get elevation, biomes, objects, structure tiles, and a walking mask as JSON. Your game decides how they look and what happens next.
 
 ![Six Microworld presets rendered from generated world data](public/readme-worlds.svg)
 

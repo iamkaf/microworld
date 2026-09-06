@@ -28,6 +28,7 @@ export const PlacementSchema = v.strictObject({
   object: name,
   pitch: integer(4, 64),
   probability: v.optional(unit, 1),
+  priority: v.optional(integer(0, 100), 0),
   minSpacing: v.optional(integer(0, 32), 0),
   width: v.optional(integer(1, 16)),
   height: v.optional(integer(1, 16)),

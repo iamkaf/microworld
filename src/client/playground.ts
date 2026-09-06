@@ -1,25 +1,17 @@
+import { paintWorld } from "./render.ts";
 const VERSION = "1";
-import { biomeColor } from "../palette.ts";
-interface World {
-  configuration: {
-    terrain: { scale: number; seaLevel: number; roughness: number };
-    placements: unknown[];
-  };
-  generatorVersion: string;
-  seed: string;
-  preset: string;
-  window: { x: number; y: number; width: number; height: number };
-  elevation: number[];
-  biome: string[];
-  objects: { x: number; y: number; width?: number; height?: number; object?: string }[];
-  tiles: { x: number; y: number; tile: string }[];
-}
+import type { World } from "./world.ts";
+import { drawExplorer } from "./rpg-tiles.ts";
+import { findSpawn, step } from "./explorer.ts";
 const get = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const canvas = get<HTMLCanvasElement>("world-canvas");
 const ctx = canvas.getContext("2d")!;
 const preset = get<HTMLSelectElement>("preset");
 const seed = get<HTMLInputElement>("seed");
 const layer = get<HTMLSelectElement>("layer");
+const style = get<HTMLSelectElement>("map-style");
+const explore = get<HTMLButtonElement>("explore-world");
+let player: number | null = null;
 const status = get("world-status");
 const error = get("world-error");
 const loading = get("map-loading");
@@ -38,43 +30,7 @@ function startRequest() {
   return { token: ++requestNumber, signal: requestController.signal };
 }
 const cache = new Map<string, World>();
-function paintWorld(target: HTMLCanvasElement, data: World, view = "biome") {
-  target.width = data.window.width;
-  target.height = data.window.height;
-  const context = target.getContext("2d")!;
-  data.biome.forEach((biome, i) => {
-    const elevation = data.elevation[i] ?? 0;
-    if (view === "elevation") {
-      const value = Math.round((elevation / 65535) * 220) + 20;
-      context.fillStyle = `rgb(${value},${value},${value})`;
-    } else context.fillStyle = biomeColor(biome);
-    context.fillRect(i % data.window.width, Math.floor(i / data.window.width), 1, 1);
-    if (view !== "elevation") {
-      const shade = (elevation / 65535 - 0.5) * 0.23;
-      context.fillStyle = shade > 0 ? `rgba(255,255,240,${shade})` : `rgba(15,30,25,${-shade})`;
-      context.fillRect(i % data.window.width, Math.floor(i / data.window.width), 1, 1);
-    }
-  });
-  if (view === "objects") {
-    context.fillStyle = "#ffffff80";
-    context.fillRect(0, 0, target.width, target.height);
-  }
-  if (view !== "elevation") {
-    for (const object of data.objects ?? []) {
-      context.fillStyle = view === "objects" ? "#444333" : "#3f6245";
-      context.fillRect(
-        object.x - data.window.x,
-        object.y - data.window.y,
-        object.width ?? 1,
-        object.height ?? 1,
-      );
-    }
-    for (const tile of data.tiles ?? []) {
-      context.fillStyle = tile.tile.includes("wall") ? "#6f5b48" : "#baa77c";
-      context.fillRect(tile.x - data.window.x, tile.y - data.window.y, 1, 1);
-    }
-  }
-}
+
 function draw() {
   const { width, height } = canvas.getBoundingClientRect();
   const dpr = devicePixelRatio || 1;
@@ -85,7 +41,14 @@ function draw() {
   ctx.fillRect(0, 0, width, height);
   if (!world) return;
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(raster, offsetX, offsetY, raster.width * scale, raster.height * scale);
+  ctx.drawImage(raster, offsetX, offsetY, world.window.width * scale, world.window.height * scale);
+  if (player !== null)
+    drawExplorer(
+      ctx,
+      offsetX + (player % world.window.width) * scale,
+      offsetY + Math.floor(player / world.window.width) * scale,
+      scale,
+    );
 }
 function reset() {
   if (!world) return;
@@ -93,14 +56,16 @@ function reset() {
     canvas.clientWidth / world.window.width,
     canvas.clientHeight / world.window.height,
   );
-  scale = fitScale;
-  offsetX = (canvas.clientWidth - raster.width * scale) / 2;
-  offsetY = (canvas.clientHeight - raster.height * scale) / 2;
+  scale = style.value === "classic" ? Math.max(fitScale, 16) : fitScale;
+  offsetX = (canvas.clientWidth - world.window.width * scale) / 2;
+  offsetY = (canvas.clientHeight - world.window.height * scale) / 2;
+  if (player !== null) centerPlayer();
   draw();
 }
 function show(data: World, source: string) {
   world = data;
-  paintWorld(raster, data, layer.value);
+  stopExploring();
+  paintWorld(raster, data, layer.value, style.value);
   reset();
   get("map-title").textContent = preset.options[preset.selectedIndex]?.text ?? data.preset;
   get("map-seed").textContent = data.seed;
@@ -206,10 +171,72 @@ get<HTMLFormElement>("world-form").addEventListener("submit", async (event) => {
     }
   }
 });
-preset.addEventListener("change", () => void loadPreset(preset.value));
+preset.addEventListener("change", () => {
+  style.value = preset.value === "rpg" ? "classic" : "block";
+  void loadPreset(preset.value);
+});
+style.addEventListener("change", () => {
+  if (world) {
+    paintWorld(raster, world, layer.value, style.value);
+    reset();
+  }
+});
+function centerPlayer() {
+  if (!world || player === null) return;
+  offsetX = canvas.clientWidth / 2 - ((player % world.window.width) + 0.5) * scale;
+  offsetY = canvas.clientHeight / 2 - (Math.floor(player / world.window.width) + 0.5) * scale;
+}
+function stopExploring() {
+  player = null;
+  explore.textContent = "Walk around";
+  explore.setAttribute("aria-pressed", "false");
+  get("walk-controls").hidden = true;
+  get("map-hint").textContent = "Drag to explore · Scroll to zoom";
+}
+explore.addEventListener("click", () => {
+  if (!world) return;
+  if (player !== null) {
+    stopExploring();
+    reset();
+    return;
+  }
+  player = findSpawn(world);
+  if (player === null) {
+    status.textContent = "This window has no walkable ground. Try another location.";
+    return;
+  }
+  layer.value = "biome";
+  paintWorld(raster, world, layer.value, style.value);
+  scale = Math.max(fitScale, 24);
+  centerPlayer();
+  explore.textContent = "Stop walking";
+  explore.setAttribute("aria-pressed", "true");
+  get("walk-controls").hidden = false;
+  get("map-hint").textContent = "Arrow keys or WASD to walk";
+  status.textContent = "Walking · water, peaks, trees, and walls block your path";
+  canvas.focus({ preventScroll: true });
+  draw();
+});
+function move(dx: number, dy: number) {
+  if (!world || player === null) return;
+  const next = step(world, player, dx, dy);
+  status.textContent =
+    next === player ? "Blocked · try another direction" : "Walking · arrow keys or WASD";
+  player = next;
+  centerPlayer();
+  draw();
+  get("cell-inspector").textContent =
+    `${world.window.x + (player % world.window.width)}, ${world.window.y + Math.floor(player / world.window.width)} · ${world.biome[player]}`;
+}
+for (const button of document.querySelectorAll<HTMLButtonElement>("[data-walk]")) {
+  button.addEventListener("click", () => {
+    const [dx, dy] = button.dataset.walk!.split(",").map(Number);
+    move(dx, dy);
+  });
+}
 layer.addEventListener("change", () => {
   if (world) {
-    paintWorld(raster, world, layer.value);
+    paintWorld(raster, world, layer.value, style.value);
     draw();
   }
 });
@@ -266,6 +293,29 @@ canvas.addEventListener("pointercancel", () => {
   drag = undefined;
 });
 canvas.addEventListener("keydown", (event) => {
+  if (player !== null) {
+    const directions: Record<string, [number, number]> = {
+      ArrowLeft: [-1, 0],
+      a: [-1, 0],
+      ArrowRight: [1, 0],
+      d: [1, 0],
+      ArrowUp: [0, -1],
+      w: [0, -1],
+      ArrowDown: [0, 1],
+      s: [0, 1],
+    };
+    const direction = directions[event.key];
+    if (direction) {
+      event.preventDefault();
+      move(...direction);
+      return;
+    }
+    if (event.key === "Escape") {
+      stopExploring();
+      reset();
+      return;
+    }
+  }
   const keys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "+", "=", "-", "0"];
   if (!keys.includes(event.key)) return;
   event.preventDefault();
@@ -302,7 +352,7 @@ get("copy-world-request").addEventListener("click", (event) => {
       }
     : requestBody();
   void copy(
-    `curl --request QUERY https://microworld.kaf.sh/api/world --header 'Content-Type: application/json' --data '${JSON.stringify(body).replaceAll("'", "'\"'\"'")}'`,
+    `curl --request QUERY ${location.origin}/api/world --header 'Content-Type: application/json' --data '${JSON.stringify(body).replaceAll("'", "'\"'\"'")}'`,
     event.currentTarget as HTMLElement,
   );
 });
@@ -330,6 +380,7 @@ document
 document.querySelectorAll<HTMLButtonElement>("[data-preset]").forEach((button) =>
   button.addEventListener("click", () => {
     preset.value = button.dataset.preset!;
+    style.value = preset.value === "rpg" ? "classic" : "block";
     void loadPreset(preset.value);
     get("playground").scrollIntoView({
       behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",

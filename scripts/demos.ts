@@ -2,7 +2,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { generateWorld } from "../src/generate.ts";
 import { PRESET_IDS, getPreset } from "../src/presets.ts";
 import { VERSION } from "../src/schema.ts";
-import { biomeColor } from "../src/palette.ts";
+import { tileColor } from "../src/palette.ts";
+import { terrainColor } from "../src/map-colors.ts";
 
 type World = ReturnType<typeof generateWorld>;
 await mkdir("public/demos", { recursive: true });
@@ -18,7 +19,7 @@ for (const preset of PRESET_IDS) {
       generatorVersion: VERSION,
       seed: "little-adventure",
       preset,
-      window: { x: offset, y: offset, width: 128, height: 128 },
+      window: { x: offset, y: offset, width: 256, height: 256 },
     });
     const counts = new Map<string, number>();
     for (const biome of world.biome) counts.set(biome, (counts.get(biome) ?? 0) + 1);
@@ -26,8 +27,22 @@ for (const preset of PRESET_IDS) {
       const fraction = count / world.biome.length;
       return sum - fraction * Math.log2(fraction);
     }, 0);
-    if (entropy > best) {
-      best = entropy;
+    const woodland = (counts.get("forest") ?? 0) / world.biome.length;
+    const water =
+      ["ocean", "deep-ocean", "shallow-water", "river"].reduce(
+        (n, b) => n + (counts.get(b) ?? 0),
+        0,
+      ) / world.biome.length;
+    const score =
+      (preset === "rpg"
+        ? Math.min(4, world.objects.filter((object) => object.object === "house").length) * 0.4
+        : 0) +
+      entropy +
+      (["overworld", "rpg"].includes(preset)
+        ? Math.min(woodland, 0.3) * 4 - Math.abs(water - 0.2) * 3
+        : 0);
+    if (score > best) {
+      best = score;
       selected = world;
     }
   }
@@ -52,10 +67,17 @@ panels.forEach((preset, index) => {
   const ox = 40 + (index % 3) * 380,
     oy = 122 + Math.floor(index / 3) * 250;
   const paths = new Map<string, string[]>();
+  const tiles = new Map(
+    world.tiles.map((tile) => [
+      (tile.y - world.window.y) * world.window.width + tile.x - world.window.x,
+      tileColor(tile.tile),
+    ]),
+  );
   // Crop to a wide landscape window without changing the sampled data.
   for (let y = 0; y < 72; y++) {
     for (let x = 0; x < 128; x++) {
-      const color = biomeColor(world.biome[y * 128 + x]);
+      const i = (y * 2 + 56) * 256 + x * 2;
+      const color = tiles.get(i) ?? terrainColor(world, i);
       const rows = paths.get(color) ?? [];
       rows.push(`M${x} ${y}h1v1h-1z`);
       paths.set(color, rows);
