@@ -129,33 +129,4 @@ export async function handleRequest(request: Request, env: Env = {}): Promise<Re
   return new Response(response.body, { status: response.status, headers: responseHeaders });
 }
 
-/** Compute-only Durable Object: no storage, sessions, or retained request data. */
-export class WorldGenerator {
-  private readonly env: Env;
-
-  constructor(_ctx: unknown, env: Env) {
-    this.env = env;
-  }
-
-  fetch(request: Request): Promise<Response> {
-    return handleRequest(request, this.env);
-  }
-}
-
-/** Keep parsing and generation out of the entry Worker's short CPU allowance. */
-export function dispatchRequest(request: Request, env: Env = {}): Promise<Response> {
-  const { pathname } = new URL(request.url);
-  const isApi = pathname === "/mcp" || pathname === "/api" || pathname.startsWith("/api/");
-  if (isApi && env.WORLD_GENERATOR) {
-    // A bounded pool avoids a single global compute queue without creating an
-    // object per seed or caller. Trusted edge metadata keeps pools regional;
-    // routing never contributes to generation inputs.
-    const bucket = crypto.getRandomValues(new Uint8Array(1))[0] % 32;
-    const colo = (request as Request & { cf?: { colo?: unknown } }).cf?.colo;
-    const region = typeof colo === "string" && /^[A-Z]{3}$/.test(colo) ? colo : "global";
-    return env.WORLD_GENERATOR.getByName(`compute-${region}-${bucket}`).fetch(request);
-  }
-  return handleRequest(request, env);
-}
-
-export default { fetch: dispatchRequest };
+export default { fetch: handleRequest };

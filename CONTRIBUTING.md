@@ -31,9 +31,9 @@ For production-like local checks, run `pnpm build` followed by `pnpm preview`. T
 
 ## Deployment
 
-The project deploys one Cloudflare Worker with a compute-only Durable Object class. Astro's `dist` directory supplies static assets directly. The entry Worker forwards API and MCP requests unchanged to the `WORLD_GENERATOR` binding, where `WorldGenerator` parses requests, generates data, and serializes responses.
+The project deploys one Cloudflare Worker on the Workers Paid plan. Astro's `dist` directory supplies static assets directly. The Worker handles API and MCP requests itself, without storage or sessions. `wrangler.jsonc` sets a 30-second CPU limit.
 
-`wrangler.jsonc` declares `WorldGenerator` with a `v1` migration using `new_sqlite_classes`. The SQLite backend makes the class available on Cloudflare Free. The application creates no SQL tables, performs no storage reads or writes, and retains no world or session state. Keep the class export, binding, and migration together when deploying a fork. This design uses the Free plan without a paid upgrade. See [Cloudflare's Durable Object limits](https://developers.cloudflare.com/durable-objects/platform/limits/) for the runtime allowances.
+The migration history includes removal of the former compute-only Durable Object class so existing deployments can upgrade. No Durable Object binding or runtime code remains.
 
 Use the installed Wrangler CLI to authenticate with your Cloudflare account, then review `wrangler.jsonc`. The custom domain is `microworld.kaf.sh`; deployment requires access to its Cloudflare zone. A fork must change or remove that route and configure its own account.
 
@@ -46,7 +46,7 @@ pnpm deploy
 
 The Worker accepts `MAX_CELLS`, `MAX_SIDE`, `MAX_RULES`, `MAX_WORK`, and `MAX_BODY_BYTES` configuration values. `MCP_ALLOWED_ORIGINS` is a comma-separated browser-origin allowlist. The optional `RATE_LIMITER` binding controls public request throttling. Read `/api/capabilities` for the active limits. Review the API reference and Worker configuration before changing them.
 
-Benchmark representative rules and windows on the deployed runtime before increasing limits. Local timing does not predict Worker CPU use. The initial direct-Worker deployment exceeded the Free Worker CPU allowance on large windows. The compute pool addresses that constraint; free-tier quotas and application limits still apply. See [verification notes](docs/verification.md) for measurements and deployment checks.
+Benchmark representative rules and windows on the deployed runtime before increasing limits. Local timing does not predict Worker CPU use. The initial direct-Worker deployment exceeded the Free Worker CPU allowance on large windows. Production requires Workers Paid; application limits still apply. See [verification notes](docs/verification.md) for measurements and deployment checks.
 
 ## Before sending a change
 

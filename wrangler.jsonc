@@ -4,10 +4,11 @@
   "main": "src/worker.ts",
   "compatibility_date": "2026-08-28",
   "workers_dev": true,
-  "durable_objects": {
-    "bindings": [{ "name": "WORLD_GENERATOR", "class_name": "WorldGenerator" }],
-  },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["WorldGenerator"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["WorldGenerator"] },
+    { "tag": "v2", "deleted_classes": ["WorldGenerator"] },
+  ],
+  "limits": { "cpu_ms": 30000 },
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

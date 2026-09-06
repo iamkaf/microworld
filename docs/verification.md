@@ -1,6 +1,6 @@
 # Verification notes
 
-These notes distinguish completed checks from the final production rerun. They describe the v1 implementation and the compute-pool deployment change.
+These notes distinguish completed checks from the final production rerun. They describe generator v1 and deployment checks.
 
 ## Generation compatibility and performance
 
@@ -37,17 +37,6 @@ The compute-pool change leaves the static site unchanged. A final production smo
 
 The initial deployment generated a correct 128 × 128 overworld response with 16,384 cells and returned successful MCP discovery data. Maximum-size testing passed its first three requests, then encountered Cloudflare error 1102 under the Free Worker's CPU limit. That run does not establish support for all maximum-size presets.
 
-The deployment now routes API and MCP requests through a stateless compute pool. `WorldGenerator` handles JSON parsing, generation, and serialization inside a SQLite-backed Durable Object, with no storage reads or writes. The entry Worker forwards the request and response. The configuration remains on Cloudflare Free, without a paid-plan upgrade. Cloudflare documents a default 30-second CPU allowance per Durable Object invocation. [Durable Object limits](https://developers.cloudflare.com/durable-objects/platform/limits/)
+The repository now handles API and MCP requests directly in a Worker and requires Workers Paid. The Durable Object workaround has been removed. No paid-plan change or replacement Cloudflare deployment was performed as part of that removal.
 
-Request limits and generator version `1` remain unchanged. This change requires production verification, not just a successful local run.
-
-## Final production rerun
-
-Pending confirmation:
-
-- Deploy the compute-pool version with the `WORLD_GENERATOR` binding and `v1` class migration.
-- Generate a complete 256 × 256 window for each of the 11 presets.
-- Compare MCP generation with the equivalent `QUERY` response.
-- Recheck the public site and discovery endpoints.
-
-Update this section with observed results after the deployment completes. Do not infer production success from local tests.
+Request limits and generator version `1` remain unchanged.
