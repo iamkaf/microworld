@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "astro",
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist",
+  "functions": { "api/handler.ts": { "maxDuration": 30 } },
+  "rewrites": [
+    { "source": "/api", "destination": "/api/handler" },
+    { "source": "/api/:path*", "destination": "/api/handler" },
+    { "source": "/mcp", "destination": "/api/handler" },
+    { "source": "/mcp/:path*", "destination": "/api/handler" }
+  ]
+}

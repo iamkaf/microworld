@@ -29,7 +29,17 @@ pnpm dev
 
 For production-like local checks, run `pnpm build` followed by `pnpm preview`. Test `QUERY` against port 8787 to exercise the Worker directly.
 
-## Deployment
+## Vercel deployment
+
+The Vercel project tracks `vercel` as its production branch. The `vercel` branch deploys Astro's static build alongside one Node.js 24 function. `api/handler.ts` passes requests to the shared API and MCP handler. `vercel.json` routes `/api/*` and `/mcp` to that function, including the `QUERY` method. There is no database or session storage.
+
+With the installed Vercel CLI authenticated, run `vercel link` to select your project and `pnpm deploy` to check and publish it. Vercel runs the production build. For a preview deployment, run `vercel deploy`.
+
+Set generation limits and `MCP_ALLOWED_ORIGINS` through Vercel environment variables. Without an explicit origin allowlist, MCP accepts its own request origin and `https://microworld.kaf.sh`. The Cloudflare rate-limit binding is unavailable on Vercel; configure throttling through Vercel Firewall if needed. Generation work and request-body limits still apply.
+
+The local development commands continue to use Wrangler to run the shared handler alongside Astro. This does not require a Cloudflare account. Use `vercel dev` to test Vercel routing locally.
+
+## Cloudflare deployment
 
 The project deploys one Cloudflare Worker on the Workers Paid plan. Astro's `dist` directory supplies static assets directly. The Worker handles API and MCP requests itself, without storage or sessions. `wrangler.jsonc` sets a 30-second CPU limit.
 
@@ -39,10 +49,10 @@ Use the installed Wrangler CLI to authenticate with your Cloudflare account, the
 
 ```sh
 pnpm exec wrangler login
-pnpm deploy
+pnpm deploy:cloudflare
 ```
 
-`pnpm deploy` checks the project, builds the site, and publishes the Worker. It changes the live service. CI builds and tests pull requests but does not deploy them.
+`pnpm deploy:cloudflare` checks the project, builds the site, and publishes the Worker. It changes the live service. CI builds and tests pull requests but does not deploy them.
 
 The Worker accepts `MAX_CELLS`, `MAX_SIDE`, `MAX_RULES`, `MAX_WORK`, and `MAX_BODY_BYTES` configuration values. `MCP_ALLOWED_ORIGINS` is a comma-separated browser-origin allowlist. The optional `RATE_LIMITER` binding controls public request throttling. Read `/api/capabilities` for the active limits. Review the API reference and Worker configuration before changing them.
 

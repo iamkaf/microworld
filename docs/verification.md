@@ -1,6 +1,6 @@
 # Verification notes
 
-These notes distinguish completed checks from the final production rerun. They describe generator v1 and deployment checks.
+These notes record completed checks for generator v1 and the Vercel deployment.
 
 ## Generation compatibility and performance
 
@@ -19,9 +19,7 @@ These are local elapsed-time measurements, not Cloudflare CPU measurements or se
 
 ## Local checks
 
-The compute-pool implementation passed 17 API tests. A local workerd instance returned a complete 256 × 256 world, with 65,536 cells, and a successful MCP discovery response.
-
-The final full `pnpm check` and production build rerun are pending confirmation. CI is configured to install the locked dependencies, run checks, and build; configuration alone is not evidence of a completed GitHub Actions run.
+`pnpm check` passed all 30 tests, TypeScript and Astro checks, lint, and formatting after removing the Durable Object implementation. The direct Worker build passed locally. Vercel also completed the production build successfully.
 
 ## Browser checks
 
@@ -31,7 +29,7 @@ Against the earlier deployed Worker, the following checks passed:
 - The landing page and documentation fit a 390 × 844 mobile viewport without horizontal overflow.
 - The homepage, documentation, social preview image, capabilities endpoint, and preset listing returned HTTP 200.
 
-The compute-pool change leaves the static site unchanged. A final production smoke check is pending.
+The hosting migration leaves the static site unchanged. Vercel HTTP smoke checks are recorded below.
 
 ## Production CPU finding
 
@@ -40,3 +38,17 @@ The initial deployment generated a correct 128 × 128 overworld response with 16
 The repository now handles API and MCP requests directly in a Worker and requires Workers Paid. The Durable Object workaround has been removed. No paid-plan change or replacement Cloudflare deployment was performed as part of that removal.
 
 Request limits and generator version `1` remain unchanged.
+
+## Vercel production checks
+
+On September 6, 2026, `https://microworld-five.vercel.app` passed:
+
+- HTTP 200 for the homepage, documentation, capabilities, schema, and preset listing.
+- Complete 256 × 256 generation through `QUERY` for all 11 presets using seed `vercel-smoke`.
+- MCP `server/discover` and `tools/call` requests using protocol `2026-07-28`.
+- Exact equality between MCP structured output and the corresponding `QUERY` world.
+- Browser preflight with `QUERY` in the allowed methods.
+
+The project tracks the `vercel` branch for production deployments. The custom domain `microworld.kaf.sh` still points to the earlier Cloudflare deployment.
+
+Vercel compiles TypeScript functions to JavaScript. `rewriteRelativeImportExtensions` is required so the emitted imports resolve correctly. The first deployment exposed a missing-module error; the setting fixed it, and all production checks above passed afterward.
